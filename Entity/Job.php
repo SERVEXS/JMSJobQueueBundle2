@@ -534,7 +534,7 @@ class Job implements Stringable
 
     public function getOriginalJob()
     {
-        if (null === $this->originalJob) {
+        if (!$this->originalJob instanceof Job) {
             return $this;
         }
 
@@ -547,7 +547,7 @@ class Job implements Stringable
             throw new \LogicException($this . ' must be in state "PENDING".');
         }
 
-        if (null !== $this->originalJob) {
+        if ($this->originalJob instanceof Job) {
             throw new \LogicException($this . ' already has an original job set.');
         }
 
@@ -571,7 +571,7 @@ class Job implements Stringable
 
     public function isRetryJob()
     {
-        return null !== $this->originalJob;
+        return $this->originalJob instanceof Job;
     }
 
     public function isRetried()

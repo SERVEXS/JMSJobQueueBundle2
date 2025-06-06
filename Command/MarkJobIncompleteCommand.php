@@ -40,7 +40,7 @@ class MarkJobIncompleteCommand extends Command
         if (null === $job) {
             $output->writeln('<error>Job was not found.</error>');
 
-            return 1;
+            return Command::FAILURE;
         }
 
         $this->jobManager->closeJob($job, Job::STATE_INCOMPLETE);

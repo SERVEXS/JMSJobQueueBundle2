@@ -18,6 +18,8 @@
 
 namespace JMS\JobQueueBundle\Command;
 
+use Doctrine\ORM\OptimisticLockException;
+use Doctrine\ORM\ORMException;
 use Doctrine\Persistence\ObjectManager;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
@@ -200,7 +202,7 @@ class RunCommand extends Command
                 $restrictedQueues
             );
 
-            if (null === $pendingJob) {
+            if (!$pendingJob instanceof Job) {
                 sleep($idleTime);
 
                 return;
@@ -253,8 +255,8 @@ class RunCommand extends Command
     }
 
     /**
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
+     * @throws ORMException
+     * @throws OptimisticLockException
      */
     private function checkRunningJobs(): void
     {

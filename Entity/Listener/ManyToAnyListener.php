@@ -24,7 +24,7 @@ use RuntimeException;
  */
 class ManyToAnyListener
 {
-    private ReflectionProperty $ref;
+    private readonly ReflectionProperty $ref;
 
     public function __construct(private readonly ManagerRegistry $registry)
     {

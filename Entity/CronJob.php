@@ -13,7 +13,7 @@ class CronJob
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'AUTO')]
     #[ORM\Column(type: 'integer', options: ['unsigned' => true])]
-    private ?int $id;
+    private ?int $id = null;
 
     #[ORM\Column(name: 'lastRunAt', type: 'datetime')]
     private DateTime $lastRunAt;

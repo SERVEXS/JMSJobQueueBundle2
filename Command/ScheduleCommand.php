@@ -54,10 +54,10 @@ class ScheduleCommand extends Command
         }
 
         $jobSchedulers = $this->populateJobSchedulers();
-        if (empty($jobSchedulers)) {
+        if ($jobSchedulers === []) {
             $output->writeln('No job schedulers found, exiting...');
 
-            return 0;
+            return \Symfony\Component\Console\Command\Command::SUCCESS;
         }
 
         $jobsLastRunAt = $this->populateJobsLastRunAt($this->registry->getManagerForClass(CronJob::class), $jobSchedulers);

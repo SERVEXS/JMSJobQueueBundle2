@@ -23,7 +23,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Query\Parameter;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use Doctrine\Persistence\ObjectManager;
@@ -59,7 +58,7 @@ class JobManager
 
     public function getJob($command, array $args = []): Job
     {
-        if (null !== $job = $this->findJob($command, $args)) {
+        if (($job = $this->findJob($command, $args)) instanceof Job) {
             return $job;
         }
 
@@ -68,7 +67,7 @@ class JobManager
 
     public function getOrCreateIfNotExists($command, array $args = []): Job
     {
-        if (null !== $job = $this->findJob($command, $args)) {
+        if (($job = $this->findJob($command, $args)) instanceof Job) {
             return $job;
         }
 
@@ -270,7 +269,7 @@ class JobManager
             return;
         }
 
-        if (null !== $this->dispatcher && ($job->isRetryJob() || 0 === count($job->getRetryJobs()))) {
+        if ($this->dispatcher instanceof EventDispatcherInterface && ($job->isRetryJob() || 0 === count($job->getRetryJobs()))) {
             $event = new StateChangeEvent($job, $finalState);
             $this->dispatcher->dispatch($event, 'jms_job_queue.job_state_change');
             $finalState = $event->getNewState();
@@ -310,7 +309,7 @@ class JobManager
                     $retryJob = new Job($job->getCommand(), $job->getArgs(), true, $job->getQueue(), $job->getPriority());
                     $retryJob->setMaxRuntime($job->getMaxRuntime());
 
-                    if (null === $this->retryScheduler) {
+                    if (!$this->retryScheduler instanceof RetryScheduler) {
                         $this->retryScheduler = new ExponentialRetryScheduler(5);
                     }
 
@@ -359,7 +358,7 @@ class JobManager
     public function findIncomingDependencies(Job $job): array
     {
         $jobIds = $this->getJobIdsOfIncomingDependencies($job);
-        if (empty($jobIds)) {
+        if ([] === $jobIds) {
             return [];
         }
 
@@ -374,7 +373,7 @@ class JobManager
     public function getIncomingDependencies(Job $job): array
     {
         $jobIds = $this->getJobIdsOfIncomingDependencies($job);
-        if (empty($jobIds)) {
+        if ([] === $jobIds) {
             return [];
         }
 
