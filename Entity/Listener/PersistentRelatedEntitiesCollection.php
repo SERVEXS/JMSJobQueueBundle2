@@ -11,6 +11,8 @@ use Doctrine\Common\Collections\Expr\ClosureExpressionVisitor;
 use Doctrine\Common\Collections\Selectable;
 use Doctrine\Persistence\ManagerRegistry;
 use JMS\JobQueueBundle\Entity\Job;
+use LogicException;
+use Stringable;
 
 /**
  * Collection for persistent related entities.
@@ -19,24 +21,20 @@ use JMS\JobQueueBundle\Entity\Job;
  *
  * @author Johannes M. Schmitt <schmittjoh@gmail.com>
  */
-class PersistentRelatedEntitiesCollection implements Collection, Selectable
+class PersistentRelatedEntitiesCollection implements Collection, Selectable, Stringable
 {
-    private $registry;
-    private $job;
     private $entities;
 
-    public function __construct(ManagerRegistry $registry, Job $job)
+    public function __construct(private readonly ManagerRegistry $registry, private readonly Job $job)
     {
-        $this->registry = $registry;
-        $this->job = $job;
     }
 
     /**
      * Gets the PHP array representation of this collection.
      *
-     * @return array<object> The PHP array representation of this collection.
+     * @return array<object> the PHP array representation of this collection
      */
-    public function toArray()
+    public function toArray(): array
     {
         $this->initialize();
 
@@ -49,7 +47,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return object|false
      */
-    public function first()
+    public function first(): object|bool
     {
         $this->initialize();
 
@@ -62,7 +60,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return object|false
      */
-    public function last()
+    public function last(): object|bool
     {
         $this->initialize();
 
@@ -71,10 +69,8 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
 
     /**
      * Gets the current key/index at the current internal iterator position.
-     *
-     * @return string|integer
      */
-    public function key()
+    public function key(): string|int
     {
         $this->initialize();
 
@@ -86,7 +82,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return object|false
      */
-    public function next()
+    public function next(): object|bool
     {
         $this->initialize();
 
@@ -98,7 +94,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return object|false
      */
-    public function current()
+    public function current(): object|bool
     {
         $this->initialize();
 
@@ -108,34 +104,35 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     /**
      * Removes an element with a specific key/index from the collection.
      *
-     * @param string|integer $key
-     * @return object|null The removed element or NULL, if no element exists for the given key.
+     * @param string|int $key
+     *
+     * @return object|null the removed element or NULL, if no element exists for the given key
      */
-    public function remove($key)
+    public function remove($key): object|null
     {
-        throw new \LogicException('remove() is not supported.');
+        throw new LogicException('remove() is not supported.');
     }
 
     /**
      * Removes the specified element from the collection, if it is found.
      *
-     * @param object $element The element to remove.
-     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
+     * @param object $element the element to remove
+     *
+     * @return bool TRUE if this collection contained the specified element, FALSE otherwise
      */
-    public function removeElement($element)
+    public function removeElement($element): bool
     {
-        throw new \LogicException('removeElement() is not supported.');
+        throw new LogicException('removeElement() is not supported.');
     }
 
     /**
-     * ArrayAccess implementation of offsetExists()
+     * ArrayAccess implementation of offsetExists().
      *
      * @see containsKey()
      *
-     * @param mixed $offset
      * @return bool
      */
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         $this->initialize();
 
@@ -143,14 +140,11 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     }
 
     /**
-     * ArrayAccess implementation of offsetGet()
+     * ArrayAccess implementation of offsetGet().
      *
      * @see get()
-     *
-     * @param mixed $offset
-     * @return mixed
      */
-    public function offsetGet($offset)
+    public function offsetGet($offset): mixed
     {
         $this->initialize();
 
@@ -158,40 +152,36 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     }
 
     /**
-     * ArrayAccess implementation of offsetSet()
+     * ArrayAccess implementation of offsetSet().
      *
      * @see add()
      * @see set()
      *
-     * @param mixed $offset
-     * @param mixed $value
      * @return bool
      */
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): bool
     {
-        throw new \LogicException('Adding new related entities is not supported after initial creation.');
+        throw new LogicException('Adding new related entities is not supported after initial creation.');
     }
 
     /**
-     * ArrayAccess implementation of offsetUnset()
+     * ArrayAccess implementation of offsetUnset().
      *
      * @see remove()
-     *
-     * @param mixed $offset
-     * @return mixed
      */
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
-        throw new \LogicException('unset() is not supported.');
+        throw new LogicException('unset() is not supported.');
     }
 
     /**
      * Checks whether the collection contains a specific key/index.
      *
-     * @param mixed $key The key to check for.
-     * @return boolean TRUE if the given key/index exists, FALSE otherwise.
+     * @param mixed $key the key to check for
+     *
+     * @return bool TRUE if the given key/index exists, FALSE otherwise
      */
-    public function containsKey($key)
+    public function containsKey($key): bool
     {
         $this->initialize();
 
@@ -204,11 +194,10 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * is strict, that means not only the value but also the type must match.
      * For objects this means reference equality.
      *
-     * @param mixed $element
-     * @return boolean TRUE if the given element is contained in the collection,
-     *          FALSE otherwise.
+     * @return bool TRUE if the given element is contained in the collection,
+     *              FALSE otherwise
      */
-    public function contains($element)
+    public function contains($element): bool
     {
         $this->initialize();
 
@@ -224,10 +213,11 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     /**
      * Tests for the existence of an element that satisfies the given predicate.
      *
-     * @param Closure $p The predicate.
-     * @return boolean TRUE if the predicate is TRUE for at least one element, FALSE otherwise.
+     * @param Closure $p the predicate
+     *
+     * @return bool TRUE if the predicate is TRUE for at least one element, FALSE otherwise
      */
-    public function exists(Closure $p)
+    public function exists(Closure $p): bool
     {
         $this->initialize();
 
@@ -236,6 +226,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
                 return true;
             }
         }
+
         return false;
     }
 
@@ -245,10 +236,11 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * only the value but also the type must match.
      * For objects this means reference equality.
      *
-     * @param mixed $element The element to search for.
-     * @return mixed The key/index of the element or FALSE if the element was not found.
+     * @param mixed $element the element to search for
+     *
+     * @return mixed the key/index of the element or FALSE if the element was not found
      */
-    public function indexOf($element)
+    public function indexOf($element): mixed
     {
         $this->initialize();
 
@@ -258,17 +250,15 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
     /**
      * Gets the element with the given key/index.
      *
-     * @param mixed $key The key.
-     * @return mixed The element or NULL, if no element exists for the given key.
+     * @param mixed $key the key
+     *
+     * @return mixed the element or NULL, if no element exists for the given key
      */
-    public function get($key)
+    public function get($key): mixed
     {
         $this->initialize();
 
-        if (isset($this->entities[$key])) {
-            return $this->entities[$key];
-        }
-        return null;
+        return $this->entities[$key] ?? null;
     }
 
     /**
@@ -276,7 +266,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return array
      */
-    public function getKeys()
+    public function getKeys(): array
     {
         $this->initialize();
 
@@ -288,7 +278,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return array
      */
-    public function getValues()
+    public function getValues(): array
     {
         $this->initialize();
 
@@ -300,9 +290,9 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * Implementation of the Countable interface.
      *
-     * @return integer The number of elements in the collection.
+     * @return int the number of elements in the collection
      */
-    public function count()
+    public function count(): int
     {
         $this->initialize();
 
@@ -314,24 +304,20 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * When the collection is a Map this is like put(key,value)/add(key,value).
      * When the collection is a List this is like add(position,value).
-     *
-     * @param mixed $key
-     * @param mixed $value
      */
-    public function set($key, $value)
+    public function set($key, $value): void
     {
-        throw new \LogicException('set() is not supported.');
+        throw new LogicException('set() is not supported.');
     }
 
     /**
      * Adds an element to the collection.
      *
-     * @param mixed $value
-     * @return boolean Always TRUE.
+     * @return bool always TRUE
      */
-    public function add($value)
+    public function add($value): void
     {
-        throw new \LogicException('Adding new entities is not supported after creation.');
+        throw new LogicException('Adding new entities is not supported after creation.');
     }
 
     /**
@@ -339,13 +325,13 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * Note: This is preferable over count() == 0.
      *
-     * @return boolean TRUE if the collection is empty, FALSE otherwise.
+     * @return bool TRUE if the collection is empty, FALSE otherwise
      */
-    public function isEmpty()
+    public function isEmpty(): bool
     {
         $this->initialize();
 
-        return ! $this->entities;
+        return !$this->entities;
     }
 
     /**
@@ -353,7 +339,7 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @return ArrayIterator
      */
-    public function getIterator()
+    public function getIterator(): ArrayIterator
     {
         $this->initialize();
 
@@ -364,10 +350,9 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * Applies the given function to each element in the collection and returns
      * a new collection with the elements returned by the function.
      *
-     * @param Closure $func
      * @return Collection
      */
-    public function map(Closure $func)
+    public function map(Closure $func): Collection
     {
         $this->initialize();
 
@@ -378,10 +363,11 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * Returns all the elements of this collection that satisfy the predicate p.
      * The order of the elements is preserved.
      *
-     * @param Closure $p The predicate used for filtering.
-     * @return Collection A collection with the results of the filter operation.
+     * @param Closure $p the predicate used for filtering
+     *
+     * @return Collection a collection with the results of the filter operation
      */
-    public function filter(Closure $p)
+    public function filter(Closure $p): Collection
     {
         $this->initialize();
 
@@ -392,15 +378,16 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * Applies the given predicate p to all elements of this collection,
      * returning true, if the predicate yields true for all elements.
      *
-     * @param Closure $p The predicate.
-     * @return boolean TRUE, if the predicate yields TRUE for all elements, FALSE otherwise.
+     * @param Closure $p the predicate
+     *
+     * @return bool TRUE, if the predicate yields TRUE for all elements, FALSE otherwise
      */
-    public function forAll(Closure $p)
+    public function forAll(Closure $p): bool
     {
         $this->initialize();
 
         foreach ($this->entities as $key => $element) {
-            if ( ! $p($key, $element)) {
+            if (!$p($key, $element)) {
                 return false;
             }
         }
@@ -412,16 +399,17 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * Partitions this collection in two collections according to a predicate.
      * Keys are preserved in the resulting collections.
      *
-     * @param Closure $p The predicate on which to partition.
+     * @param Closure $p the predicate on which to partition
+     *
      * @return array An array with two elements. The first element contains the collection
      *               of elements where the predicate returned TRUE, the second element
      *               contains the collection of elements where the predicate returned FALSE.
      */
-    public function partition(Closure $p)
+    public function partition(Closure $p): array
     {
         $this->initialize();
 
-        $coll1 = $coll2 = array();
+        $coll1 = $coll2 = [];
         foreach ($this->entities as $key => $element) {
             if ($p($key, $element)) {
                 $coll1[$key] = $element;
@@ -429,25 +417,24 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
                 $coll2[$key] = $element;
             }
         }
-        return array(new ArrayCollection($coll1), new ArrayCollection($coll2));
+
+        return [new ArrayCollection($coll1), new ArrayCollection($coll2)];
     }
 
     /**
      * Returns a string representation of this object.
-     *
-     * @return string
      */
-    public function __toString()
+    public function __toString(): string
     {
-        return __CLASS__ . '@' . spl_object_hash($this);
+        return self::class . '@' . spl_object_hash($this);
     }
 
     /**
      * Clears the collection.
      */
-    public function clear()
+    public function clear(): void
     {
-        throw new \LogicException('clear() is not supported.');
+        throw new LogicException('clear() is not supported.');
     }
 
     /**
@@ -459,9 +446,10 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      *
      * @param int $offset
      * @param int $length
+     *
      * @return array
      */
-    public function slice($offset, $length = null)
+    public function slice($offset, $length = null): array
     {
         $this->initialize();
 
@@ -472,26 +460,25 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
      * Select all elements from a selectable that match the criteria and
      * return a new collection containing these elements.
      *
-     * @param  Criteria $criteria
      * @return Collection
      */
-    public function matching(Criteria $criteria)
+    public function matching(Criteria $criteria): Collection
     {
         $this->initialize();
 
-        $expr     = $criteria->getWhereExpression();
+        $expr = $criteria->getWhereExpression();
         $filtered = $this->entities;
 
         if ($expr) {
-            $visitor  = new ClosureExpressionVisitor();
-            $filter   = $visitor->dispatch($expr);
+            $visitor = new ClosureExpressionVisitor();
+            $filter = $visitor->dispatch($expr);
             $filtered = array_filter($filtered, $filter);
         }
 
         if (null !== $orderings = $criteria->getOrderings()) {
             $next = null;
             foreach (array_reverse($orderings) as $field => $ordering) {
-                $next = ClosureExpressionVisitor::sortByField($field, $ordering == 'DESC' ? -1 : 1, $next);
+                $next = ClosureExpressionVisitor::sortByField($field, 'DESC' == $ordering ? -1 : 1, $next);
             }
 
             usort($filtered, $next);
@@ -501,33 +488,33 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         $length = $criteria->getMaxResults();
 
         if ($offset || $length) {
-            $filtered = array_slice($filtered, (int)$offset, $length);
+            $filtered = array_slice($filtered, (int) $offset, $length);
         }
 
         return new ArrayCollection($filtered);
     }
 
-    private function initialize()
+    private function initialize(): void
     {
         if (null !== $this->entities) {
             return;
         }
 
         $con = $this->registry->getManagerForClass(Job::class)->getConnection();
-        $entitiesPerClass = array();
+        $entitiesPerClass = [];
         $count = 0;
-        foreach ($con->query("SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = ".$this->job->getId()) as $data) {
-            $count += 1;
-            $entitiesPerClass[$data['related_class']][] = json_decode($data['related_id'], true);
+        foreach ($con->query('SELECT related_class, related_id FROM jms_job_related_entities WHERE job_id = ' . $this->job->getId()) as $data) {
+            ++$count;
+            $entitiesPerClass[$data['related_class']][] = json_decode((string) $data['related_id'], true);
         }
 
         if (0 === $count) {
-            $this->entities = array();
+            $this->entities = [];
 
             return;
         }
 
-        $entities = array();
+        $entities = [];
         foreach ($entitiesPerClass as $className => $ids) {
             $em = $this->registry->getManagerForClass($className);
             $qb = $em->createQueryBuilder()
@@ -538,9 +525,9 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
                 $expr = null;
                 foreach ($id as $k => $v) {
                     if (null === $expr) {
-                        $expr = $qb->expr()->eq('e.'.$k, '?'.(++$i));
+                        $expr = $qb->expr()->eq('e.' . $k, '?' . (++$i));
                     } else {
-                        $expr = $qb->expr()->andX($expr, $qb->expr()->eq('e.'.$k, '?'.(++$i)));
+                        $expr = $qb->expr()->andX($expr, $qb->expr()->eq('e.' . $k, '?' . (++$i)));
                     }
 
                     $qb->setParameter($i, $v);
@@ -553,5 +540,15 @@ class PersistentRelatedEntitiesCollection implements Collection, Selectable
         }
 
         $this->entities = $entities;
+    }
+
+    public function findFirst(Closure $p)
+    {
+        throw new LogicException('findFirst() is not supported.');
+    }
+
+    public function reduce(Closure $func, mixed $initial = null)
+    {
+        throw new LogicException('reduce() is not supported.');
     }
 }

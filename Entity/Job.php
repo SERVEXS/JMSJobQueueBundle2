@@ -18,26 +18,34 @@
 
 namespace JMS\JobQueueBundle\Entity;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use InvalidArgumentException;
 use JMS\JobQueueBundle\Exception\InvalidStateTransitionException;
 use JMS\JobQueueBundle\Exception\LogicException;
+use RuntimeException;
+use Stringable;
 use Symfony\Component\ErrorHandler\Exception\FlattenException;
 
 /**
  * @ORM\Entity
+ *
  * @ORM\Table(name = "jms_jobs", indexes = {
+ *
  *     @ORM\Index("cmd_search_index", columns = {"command"}),
  *     @ORM\Index("sorting_index", columns = {"state", "priority", "id"}),
  * })
+ *
  * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
  *
  * @author Johannes M. Schmitt <schmittjoh@gmail.com>
  */
-class Job
+class Job implements Stringable
 {
     /** State if job is inserted, but not yet ready to be started. */
-    const STATE_NEW = 'new';
+    public const STATE_NEW = 'new';
 
     /**
      * State if job is inserted, and might be started.
@@ -49,22 +57,22 @@ class Job
      * In contrast to NEW, jobs of this state at least might be started,
      * while jobs of state NEW never are allowed to be started.
      */
-    const STATE_PENDING = 'pending';
+    public const STATE_PENDING = 'pending';
 
     /** State if job was never started, and will never be started. */
-    const STATE_CANCELED = 'canceled';
+    public const STATE_CANCELED = 'canceled';
 
     /** State if job was started and has not exited, yet. */
-    const STATE_RUNNING = 'running';
+    public const STATE_RUNNING = 'running';
 
     /** State if job exists with a successful exit code. */
-    const STATE_FINISHED = 'finished';
+    public const STATE_FINISHED = 'finished';
 
     /** State if job exits with a non-successful exit code. */
-    const STATE_FAILED = 'failed';
+    public const STATE_FAILED = 'failed';
 
     /** State if job exceeds its configured maximum runtime. */
-    const STATE_TERMINATED = 'terminated';
+    public const STATE_TERMINATED = 'terminated';
 
     /**
      * State if an error occurs in the runner command.
@@ -73,7 +81,7 @@ class Job
      * jobs. If instead an error occurs in the job command, this will result
      * in a state of FAILED.
      */
-    const STATE_INCOMPLETE = 'incomplete';
+    public const STATE_INCOMPLETE = 'incomplete';
 
     /**
      * State if an error occurs in the runner command.
@@ -82,93 +90,92 @@ class Job
      * jobs. If instead an error occurs in the job command, this will result
      * in a state of FAILED.
      */
-    const DEFAULT_QUEUE = 'default';
-    const MAX_QUEUE_LENGTH = 50;
+    public const DEFAULT_QUEUE = 'default';
+    public const MAX_QUEUE_LENGTH = 50;
 
-    const PRIORITY_LOW = -5;
-    const PRIORITY_DEFAULT = 0;
-    const PRIORITY_HIGH = 5;
+    public const PRIORITY_LOW = -5;
+    public const PRIORITY_DEFAULT = 0;
+    public const PRIORITY_HIGH = 5;
 
-    /** @ORM\Id @ORM\GeneratedValue(strategy = "AUTO") @ORM\Column(type = "bigint", options = {"unsigned": true}) */
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    #[ORM\Column(type: 'bigint', options: ['unsigned' => true])]
     private $id;
 
-    /** @ORM\Column(type = "string", length = 15) */
+    #[ORM\Column(type: 'string', length: 15)]
     private $state;
 
-    /** @ORM\Column(type = "string", length = Job::MAX_QUEUE_LENGTH) */
+    #[ORM\Column(type: 'string', length: Job::MAX_QUEUE_LENGTH)]
     private $queue;
 
-    /** @ORM\Column(type = "smallint") */
+    #[ORM\Column(type: 'smallint')]
     private $priority = 0;
 
-    /** @ORM\Column(type = "datetime", name="createdAt") */
-    private $createdAt;
+    #[ORM\Column(name: 'createdAt', type: 'datetime')]
+    private DateTime $createdAt;
 
-    /** @ORM\Column(type = "datetime", name="startedAt", nullable = true) */
-    private $startedAt;
+    #[ORM\Column(name: 'startedAt', type: 'datetime', nullable: true)]
+    private ?DateTime $startedAt = null;
 
-    /** @ORM\Column(type = "datetime", name="checkedAt", nullable = true) */
-    private $checkedAt;
+    #[ORM\Column(name: 'checkedAt', type: 'datetime', nullable: true)]
+    private ?DateTime $checkedAt = null;
 
-    /** @ORM\Column(type = "string", name="workerName", length = 50, nullable = true) */
-    private $workerName;
+    #[ORM\Column(name: 'workerName', type: 'string', length: 50, nullable: true)]
+    private ?string $workerName = null;
 
-    /** @ORM\Column(type = "datetime", name="executeAfter", nullable = true) */
-    private $executeAfter;
+    #[ORM\Column(name: 'executeAfter', type: 'datetime', nullable: true)]
+    private ?DateTime $executeAfter = null;
 
-    /** @ORM\Column(type = "datetime", name="closedAt", nullable = true) */
-    private $closedAt;
-
-    /** @ORM\Column(type = "string") */
-    private $command;
-
-    /** @ORM\Column(type = "json") */
-    private $args;
+    #[ORM\Column(name: 'closedAt', type: 'datetime', nullable: true)]
+    private ?DateTime $closedAt = null;
 
     /**
-     * @ORM\ManyToMany(targetEntity = "Job", fetch = "EAGER")
-     * @ORM\JoinTable(name="jms_job_dependencies",
-     *     joinColumns = { @ORM\JoinColumn(name = "source_job_id", referencedColumnName = "id") },
-     *     inverseJoinColumns = { @ORM\JoinColumn(name = "dest_job_id", referencedColumnName = "id")}
-     * )
+     * @var Collection<int, Job>
      */
-    private $dependencies;
+    #[ORM\ManyToMany(targetEntity: Job::class, fetch: 'EAGER')]
+    #[ORM\JoinTable(
+        name: 'jms_job_dependencies',
+        joinColumns: [new ORM\JoinColumn(name: 'source_job_id', referencedColumnName: 'id', nullable: false)],
+        inverseJoinColumns: [new ORM\JoinColumn(name: 'dest_job_id', referencedColumnName: 'id', nullable: false)],
+    )]
+    private Collection $dependencies;
 
-    /** @ORM\Column(type = "text", nullable = true) */
-    private $output;
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $output = null;
 
-    /** @ORM\Column(type = "text", name="errorOutput", nullable = true) */
-    private $errorOutput;
+    #[ORM\Column(name: 'errorOutput', type: 'text', nullable: true)]
+    private ?string $errorOutput = null;
 
-    /** @ORM\Column(type = "smallint", name="exitCode", nullable = true, options = {"unsigned": true}) */
-    private $exitCode;
+    #[ORM\Column(name: 'exitCode', type: 'smallint', nullable: true, options: ['unsigned' => true])]
+    private ?int $exitCode = null;
 
-    /** @ORM\Column(type = "smallint", name="maxRuntime", options = {"unsigned": true}) */
-    private $maxRuntime = 0;
+    #[ORM\Column(name: 'maxRuntime', type: 'smallint', options: ['unsigned' => true])]
+    private int $maxRuntime = 0;
 
-    /** @ORM\Column(type = "smallint", name="maxRetries", options = {"unsigned": true}) */
-    private $maxRetries = 0;
+    #[ORM\Column(name: 'maxRetries', type: 'smallint', options: ['unsigned' => true])]
+    private int $maxRetries = 0;
+
+    #[ORM\ManyToOne(targetEntity: Job::class, inversedBy: 'retryJobs')]
+    #[ORM\JoinColumn(name: 'originalJob_id', referencedColumnName: 'id')]
+    private ?Job $originalJob = null;
 
     /**
-     * @ORM\ManyToOne(targetEntity = "Job", inversedBy = "retryJobs")
-     * @ORM\JoinColumn(name="originalJob_id", referencedColumnName="id")
+     * @var Collection<int, Job>
      */
-    private $originalJob;
+    #[ORM\OneToMany(targetEntity: Job::class, mappedBy: 'originalJob', cascade: ['persist', 'remove', 'detach', 'refresh'])]
+    private Collection $retryJobs;
 
-    /** @ORM\OneToMany(targetEntity = "Job", mappedBy = "originalJob", cascade = {"persist", "remove", "detach", "refresh"}) */
-    private $retryJobs;
-
-    /** @ORM\Column(type = "jms_job_safe_object", name="stackTrace", nullable = true) */
+    #[ORM\Column(name: 'stackTrace', type: 'jms_job_safe_object', nullable: true)]
     private $stackTrace;
 
-    /** @ORM\Column(type = "smallint", nullable = true, options = {"unsigned": true}) */
-    private $runtime;
+    #[ORM\Column(type: 'smallint', nullable: true, options: ['unsigned' => true])]
+    private ?int $runtime = null;
 
-    /** @ORM\Column(type = "integer", name="memoryUsage", nullable = true, options = {"unsigned": true}) */
-    private $memoryUsage;
+    #[ORM\Column(name: 'memoryUsage', type: 'smallint', nullable: true, options: ['unsigned' => true])]
+    private ?int $memoryUsage = null;
 
-    /** @ORM\Column(type = "integer", name="memoryUsageReal", nullable = true, options = {"unsigned": true}) */
-    private $memoryUsageReal;
+    #[ORM\Column(name: 'memoryUsageReal', type: 'smallint', nullable: true, options: ['unsigned' => true])]
+    private ?int $memoryUsageReal = null;
 
     /**
      * This may store any entities which are related to this job, and are
@@ -178,19 +185,19 @@ class Job
      */
     private $relatedEntities;
 
-    public static function create($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT)
+    public static function create($command, array $args = [], $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT): Job
     {
         return new self($command, $args, $confirmed, $queue, $priority);
     }
 
-    public static function isNonSuccessfulFinalState($state)
+    public static function isNonSuccessfulFinalState($state): bool
     {
-        return in_array($state, array(self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED), true);
+        return in_array($state, [self::STATE_CANCELED, self::STATE_FAILED, self::STATE_INCOMPLETE, self::STATE_TERMINATED], true);
     }
 
-    public static function getStates()
+    public static function getStates(): array
     {
-        return array(
+        return [
             self::STATE_NEW,
             self::STATE_PENDING,
             self::STATE_CANCELED,
@@ -198,26 +205,32 @@ class Job
             self::STATE_FINISHED,
             self::STATE_FAILED,
             self::STATE_TERMINATED,
-            self::STATE_INCOMPLETE
-        );
+            self::STATE_INCOMPLETE,
+        ];
     }
 
-    public function __construct($command, array $args = array(), $confirmed = true, $queue = self::DEFAULT_QUEUE, $priority = self::PRIORITY_DEFAULT)
-    {
-        if (trim($queue) === '') {
-            throw new \InvalidArgumentException('$queue must not be empty.');
-        }
-        if (strlen($queue) > self::MAX_QUEUE_LENGTH) {
-            throw new \InvalidArgumentException(sprintf('The maximum queue length is %d, but got "%s" (%d chars).', self::MAX_QUEUE_LENGTH, $queue, strlen($queue)));
-        }
+    public function __construct(
+        #[ORM\Column(type: 'string')]
+        private $command,
 
-        $this->command = $command;
-        $this->args = $args;
+        #[ORM\Column(type: 'json')]
+        private array $args = [],
+
+        bool $confirmed = true,
+        string $queue = self::DEFAULT_QUEUE,
+        int $priority = self::PRIORITY_DEFAULT,
+    ) {
+        if ('' === trim((string) $queue)) {
+            throw new InvalidArgumentException('$queue must not be empty.');
+        }
+        if (strlen((string) $queue) > self::MAX_QUEUE_LENGTH) {
+            throw new InvalidArgumentException(sprintf('The maximum queue length is %d, but got "%s" (%d chars).', self::MAX_QUEUE_LENGTH, $queue, strlen((string) $queue)));
+        }
         $this->state = $confirmed ? self::STATE_PENDING : self::STATE_NEW;
         $this->queue = $queue;
         $this->priority = $priority * -1;
-        $this->createdAt = new \DateTime();
-        $this->executeAfter = new \DateTime();
+        $this->createdAt = new DateTime();
+        $this->executeAfter = new DateTime();
         $this->executeAfter = $this->executeAfter->modify('-1 second');
         $this->dependencies = new ArrayCollection();
         $this->retryJobs = new ArrayCollection();
@@ -227,7 +240,7 @@ class Job
     public function __clone()
     {
         $this->state = self::STATE_PENDING;
-        $this->createdAt = new \DateTime();
+        $this->createdAt = new DateTime();
         $this->startedAt = null;
         $this->checkedAt = null;
         $this->closedAt = null;
@@ -269,13 +282,13 @@ class Job
 
     public function isInFinalState()
     {
-        return ! $this->isNew() && ! $this->isPending() && ! $this->isRunning();
+        return !$this->isNew() && !$this->isPending() && !$this->isRunning();
     }
 
     public function isStartable()
     {
         foreach ($this->dependencies as $dep) {
-            if ($dep->getState() !== self::STATE_FINISHED) {
+            if (self::STATE_FINISHED !== $dep->getState()) {
                 return false;
             }
         }
@@ -291,36 +304,36 @@ class Job
 
         switch ($this->state) {
             case self::STATE_NEW:
-                if ( ! in_array($newState, array(self::STATE_PENDING, self::STATE_CANCELED), true)) {
-                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_PENDING, self::STATE_CANCELED));
+                if (!in_array($newState, [self::STATE_PENDING, self::STATE_CANCELED], true)) {
+                    throw new InvalidStateTransitionException($this, $newState, [self::STATE_PENDING, self::STATE_CANCELED]);
                 }
 
                 if (self::STATE_CANCELED === $newState) {
-                    $this->closedAt = new \DateTime();
+                    $this->closedAt = new DateTime();
                 }
 
                 break;
 
             case self::STATE_PENDING:
-                if ( ! in_array($newState, array(self::STATE_RUNNING, self::STATE_CANCELED), true)) {
-                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_RUNNING, self::STATE_CANCELED));
+                if (!in_array($newState, [self::STATE_RUNNING, self::STATE_CANCELED], true)) {
+                    throw new InvalidStateTransitionException($this, $newState, [self::STATE_RUNNING, self::STATE_CANCELED]);
                 }
 
-                if ($newState === self::STATE_RUNNING) {
-                    $this->startedAt = new \DateTime();
-                    $this->checkedAt = new \DateTime();
-                } else if ($newState === self::STATE_CANCELED) {
-                    $this->closedAt = new \DateTime();
+                if (self::STATE_RUNNING === $newState) {
+                    $this->startedAt = new DateTime();
+                    $this->checkedAt = new DateTime();
+                } elseif (self::STATE_CANCELED === $newState) {
+                    $this->closedAt = new DateTime();
                 }
 
                 break;
 
             case self::STATE_RUNNING:
-                if ( ! in_array($newState, array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE))) {
-                    throw new InvalidStateTransitionException($this, $newState, array(self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE));
+                if (!in_array($newState, [self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE])) {
+                    throw new InvalidStateTransitionException($this, $newState, [self::STATE_FINISHED, self::STATE_FAILED, self::STATE_TERMINATED, self::STATE_INCOMPLETE]);
                 }
 
-                $this->closedAt = new \DateTime();
+                $this->closedAt = new DateTime();
 
                 break;
 
@@ -329,9 +342,8 @@ class Job
             case self::STATE_TERMINATED:
             case self::STATE_INCOMPLETE:
                 throw new InvalidStateTransitionException($this, $newState);
-
             default:
-                throw new LogicException('The previous cases were exhaustive. Unknown state: '.$this->state);
+                throw new LogicException('The previous cases were exhaustive. Unknown state: ' . $this->state);
         }
 
         $this->state = $newState;
@@ -352,7 +364,7 @@ class Job
         return $this->executeAfter;
     }
 
-    public function setExecuteAfter(\DateTime $executeAfter)
+    public function setExecuteAfter(DateTime $executeAfter)
     {
         $this->executeAfter = $executeAfter;
     }
@@ -390,8 +402,8 @@ class Job
 
     public function addRelatedEntity($entity)
     {
-        if ( ! is_object($entity)) {
-            throw new \RuntimeException(sprintf('$entity must be an object.'));
+        if (!is_object($entity)) {
+            throw new RuntimeException('$entity must be an object.');
         }
 
         if ($this->relatedEntities->contains($entity)) {
@@ -431,7 +443,7 @@ class Job
 
     public function setRuntime($time)
     {
-        $this->runtime = (integer) $time;
+        $this->runtime = (int) $time;
     }
 
     public function getMemoryUsage()
@@ -486,7 +498,7 @@ class Job
 
     public function setMaxRuntime($time)
     {
-        $this->maxRuntime = (integer) $time;
+        $this->maxRuntime = (int) $time;
     }
 
     public function getMaxRuntime()
@@ -506,7 +518,7 @@ class Job
 
     public function setMaxRetries($tries)
     {
-        $this->maxRetries = (integer) $tries;
+        $this->maxRetries = (int) $tries;
     }
 
     public function isRetryAllowed()
@@ -532,11 +544,11 @@ class Job
     public function setOriginalJob(Job $job)
     {
         if (self::STATE_PENDING !== $this->state) {
-            throw new \LogicException($this.' must be in state "PENDING".');
+            throw new \LogicException($this . ' must be in state "PENDING".');
         }
 
         if (null !== $this->originalJob) {
-            throw new \LogicException($this.' already has an original job set.');
+            throw new \LogicException($this . ' already has an original job set.');
         }
 
         $this->originalJob = $job;
@@ -566,8 +578,7 @@ class Job
     {
         foreach ($this->retryJobs as $job) {
             /** @var Job $job */
-
-            if ( ! $job->isInFinalState()) {
+            if (!$job->isInFinalState()) {
                 return true;
             }
         }
@@ -577,7 +588,7 @@ class Job
 
     public function checked()
     {
-        $this->checkedAt = new \DateTime();
+        $this->checkedAt = new DateTime();
     }
 
     public function getCheckedAt()
@@ -640,7 +651,7 @@ class Job
         return self::STATE_INCOMPLETE === $this->state;
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return sprintf('Job(id = %s, command = "%s")', $this->id, $this->command);
     }
@@ -655,10 +666,6 @@ class Job
             return false;
         }
 
-        if (self::STATE_PENDING === $this->state && ! $this->isStartable()) {
-            return false;
-        }
-
-        return true;
+        return !(self::STATE_PENDING === $this->state && !$this->isStartable());
     }
 }
