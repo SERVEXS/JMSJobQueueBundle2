@@ -29,19 +29,15 @@ use RuntimeException;
 use Stringable;
 use Symfony\Component\ErrorHandler\Exception\FlattenException;
 
-/**
- * @ORM\Entity
- *
- * @ORM\Table(name = "jms_jobs", indexes = {
- *
- *     @ORM\Index("cmd_search_index", columns = {"command"}),
- *     @ORM\Index("sorting_index", columns = {"state", "priority", "id"}),
- * })
- *
- * @ORM\ChangeTrackingPolicy("DEFERRED_EXPLICIT")
- *
- * @author Johannes M. Schmitt <schmittjoh@gmail.com>
- */
+#[ORM\Entity]
+#[ORM\Table(
+    name: 'jms_jobs',
+    indexes: [
+        new ORM\Index(['command'], name: 'cmd_search_index'),
+        new ORM\Index(['state', 'priority', 'id'], name: 'sorting_index'),
+    ],
+)]
+#[ORM\ChangeTrackingPolicy('DEFERRED_EXPLICIT')]
 class Job implements Stringable
 {
     /** State if job is inserted, but not yet ready to be started. */
