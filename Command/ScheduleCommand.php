@@ -20,7 +20,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ScheduleCommand extends Command
 {
-    protected static string $defaultName = 'jms-job-queue:schedule';
+    protected static $defaultName = 'jms-job-queue:schedule';
 
     public function __construct(
         private readonly ManagerRegistry $registry,
@@ -30,7 +30,7 @@ class ScheduleCommand extends Command
         parent::__construct();
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('Schedules jobs at defined intervals')
