@@ -51,7 +51,7 @@ class JobManager
     {
         return $this->getJobManager()->createQuery('SELECT j FROM ' . Job::class . ' j WHERE j.command = :command AND j.args = :args')
             ->setParameter('command', $command)
-            ->setParameter('args', $args, Type::JSON_ARRAY)
+            ->setParameter('args', $args, 'json')
             ->setMaxResults(1)
             ->getOneOrNullResult();
     }

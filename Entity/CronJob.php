@@ -6,7 +6,7 @@ use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(name: 'jms_job_queue')]
+#[ORM\Table(name: 'jms_cron_jobs')]
 #[ORM\ChangeTrackingPolicy('DEFERRED_EXPLICIT')]
 class CronJob
 {
