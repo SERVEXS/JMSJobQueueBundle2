@@ -39,7 +39,7 @@ use Symfony\Component\Process\Process;
 
 class RunCommand extends Command
 {
-    protected static string $defaultName = 'jms-job-queue:run';
+    protected static $defaultName = 'jms-job-queue:run';
 
     private string $env;
 
@@ -62,7 +62,7 @@ class RunCommand extends Command
         parent::__construct();
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('Runs jobs from the queue.')
