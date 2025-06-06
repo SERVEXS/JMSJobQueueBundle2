@@ -195,7 +195,7 @@ class JobManager
         return [$relClass, json_encode($relId)];
     }
 
-    public function findPendingJob(array $excludedIds = [], array $excludedQueues = [], array $restrictedQueues = []): array
+    public function findPendingJob(array $excludedIds = [], array $excludedQueues = [], array $restrictedQueues = []): ?Job
     {
         $qb = $this->getJobManager()->createQueryBuilder();
         $qb->select('j')->from(Job::class, 'j')
