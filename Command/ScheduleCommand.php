@@ -13,15 +13,15 @@ use JMS\JobQueueBundle\Cron\JobScheduler;
 use JMS\JobQueueBundle\Entity\CronJob;
 use JMS\JobQueueBundle\Entity\Job;
 use RuntimeException;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(name: 'jms-job-queue:schedule', description: 'Schedules jobs at defined intervals')]
 class ScheduleCommand extends Command
 {
-    protected static $defaultName = 'jms-job-queue:schedule';
-
     public function __construct(
         private readonly ManagerRegistry $registry,
         private readonly iterable $schedulers,
@@ -33,7 +33,6 @@ class ScheduleCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Schedules jobs at defined intervals')
             ->addOption('max-runtime', null, InputOption::VALUE_REQUIRED, 'The maximum runtime of this command.', 3600)
             ->addOption('min-job-interval', null, InputOption::VALUE_REQUIRED, 'The minimum time between schedules jobs in seconds.', 5);
     }
@@ -54,10 +53,10 @@ class ScheduleCommand extends Command
         }
 
         $jobSchedulers = $this->populateJobSchedulers();
-        if ($jobSchedulers === []) {
+        if ([] === $jobSchedulers) {
             $output->writeln('No job schedulers found, exiting...');
 
-            return \Symfony\Component\Console\Command\Command::SUCCESS;
+            return Command::SUCCESS;
         }
 
         $jobsLastRunAt = $this->populateJobsLastRunAt($this->registry->getManagerForClass(CronJob::class), $jobSchedulers);
