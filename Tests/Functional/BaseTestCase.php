@@ -3,26 +3,25 @@
 namespace JMS\JobQueueBundle\Tests\Functional;
 
 use Doctrine\ORM\EntityManager;
-
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class BaseTestCase extends WebTestCase
 {
-    static protected function createKernel(array $options = array())
+    protected static function createKernel(array $options = []): \Symfony\Component\HttpKernel\KernelInterface
     {
-        $config = isset($options['config']) ? $options['config'] : 'default.yml';
+        $config = $options['config'] ?? 'default.yml';
 
         return new AppKernel($config);
     }
 
-    protected final function importDatabaseSchema()
+    final protected function importDatabaseSchema(): void
     {
         foreach (self::$kernel->getContainer()->get('doctrine')->getManagers() as $em) {
             $this->importSchemaForEm($em);
         }
     }
 
-    private function importSchemaForEm(EntityManager $em)
+    private function importSchemaForEm(EntityManager $em): void
     {
         $metadata = $em->getMetadataFactory()->getAllMetadata();
         if (!empty($metadata)) {

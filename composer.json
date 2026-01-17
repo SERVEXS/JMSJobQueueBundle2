@@ -15,28 +15,33 @@
         }
     ],
     "require": {
-        "php": "^7.3 || ^8.0",
-        "doctrine/collections": "^1.8",
+        "ext-pdo": "*",
+        "php": "^8.2",
+        "doctrine/collections": "^1.8 || ^2.0",
         "doctrine/common": "^3.0",
-        "symfony/error-handler": "^5.0",
-        "symfony/framework-bundle": "^5.0",
-        "symfony/process": "^5.0"
+        "symfony/error-handler": "^5.0 || ^6.0",
+        "symfony/framework-bundle": "^5.0 || ^6.0",
+        "symfony/process": "^5.0 || ^6.0"
     },
     "require-dev": {
-        "doctrine/doctrine-fixtures-bundle": "*",
-        "sensio/framework-extra-bundle": "*",
-        "symfony/class-loader": "*",
-        "symfony/yaml": "*",
-        "symfony/browser-kit": "*",
-        "symfony/finder": "*",
-        "symfony/css-selector": "*",
         "doctrine/doctrine-bundle": "*",
-        "doctrine/orm": "*",
-        "symfony/twig-bundle": "*",
-        "symfony/form": "*",
-        "symfony/validator": "*",
-        "phpunit/phpunit": "^6.0",
-        "symfony/intl": "*"
+        "doctrine/doctrine-fixtures-bundle": "*",
+        "doctrine/orm": "^2.0",
+        "ext-pcntl": "*",
+        "friendsofphp/php-cs-fixer": "^3.75",
+        "phpunit/phpunit": "^10.0",
+        "rector/rector": "^2.0",
+        "roave/security-advisories": "dev-latest",
+        "sensio/framework-extra-bundle": "^5.0 || ^6.0",
+        "symfony/browser-kit": "^5.0 || ^6.0",
+        "symfony/class-loader": "*",
+        "symfony/css-selector": "^5.0 || ^6.0",
+        "symfony/finder": "^5.0 || ^6.0",
+        "symfony/form": "^5.0 || ^6.0",
+        "symfony/intl": "^5.0 || ^6.0",
+        "symfony/twig-bundle": "^5.0 || ^6.0",
+        "symfony/validator": "^5.0 || ^6.0",
+        "symfony/yaml": "^5.0 || ^6.0"
     },
     "suggest": {
         "sensio/framework-extra-bundle": "Required when using the webinterface.",
@@ -48,10 +53,14 @@
     "target-dir": "JMS/JobQueueBundle",
     "extra": {
         "branch-alias": {
-            "dev-master": "4.0.x-dev"
+            "dev-master": "5.0.x-dev"
         }
     },
     "config": {
         "sort-packages": true
+    },
+    "scripts": {
+        "rector": "rector process",
+        "cs-fix": "php-cs-fixer fix src"
     }
 }
